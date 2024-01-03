@@ -1,3 +1,20 @@
+// Copyright (C) 2024 Haochen Jiang
+//
+// Authors: Haochen Jiang
+// Date: 2024/1/2
+
+/**
+ * @file executor.h
+ *
+ * @brief Manages the execution of nodes within a graph in parallel.
+ *
+ * This file contains the Executor class which takes a Graph object and a collection of input MiniBatches.
+ * It manages the parallel execution of GraphNodes within the Graph, utilizing a thread pool approach.
+ * Each node in the Graph is processed in a separate thread, respecting the dependency order.
+ */
+
+#pragma once
+
 #include <thread>
 #include <vector>
 #include <functional>
@@ -7,22 +24,26 @@
 
 class Executor {
 public:
-    // 修改了构造函数的参数类型
+    /**
+     * @brief Constructs an Executor with a reference to a Graph and a set of input MiniBatches.
+     * 
+     * @param graph Reference to the Graph object to be executed.
+     * @param inputBatches A vector of unordered maps, each map containing string-to-MiniBatch
+     *                     pairs representing input data for each node of the graph.
+     */
     Executor(Graph& graph, const std::vector<std::unordered_map<std::string, MiniBatch>>& inputBatches)
         : m_graph(graph), m_inputBatches(inputBatches) {
-        
-        std::cout << "executor constructor" << std::endl;
         initialize();
-        std::cout << "executor constructor end" << std::endl;
     }
 
+    /**
+     * @brief Starts the execution process of the graph.
+     * 
+     * Initializes a task queue and creates worker threads equal to the number of hardware threads available.
+     * Each worker thread processes nodes from the task queue.
+     */
     void run() {
-        std::cout << "executor run" << std::endl;
-        std::cout << "initializeTaskQueue" << std::endl;
         initializeTaskQueue();
-
-        std::cout << "initialize workers" << std::endl;
-
         std::vector<std::thread> workers;
         for (size_t i = 0; i < std::thread::hardware_concurrency(); ++i) {
             workers.emplace_back(&Executor::workerThread, this);
@@ -38,10 +59,13 @@ private:
     const std::vector<std::unordered_map<std::string, MiniBatch>>& m_inputBatches;
     ThreadSafeQueue<std::pair<size_t, size_t>> m_taskQueue; // Pair of nodeId and batchId
 
+    /**
+     * @brief Initializes MiniBatches in the Graph and sets up input data for root nodes.
+     */
     void initialize() {
         std::cout << "Initialize MiniBatches in Graph" << std::endl;
         m_graph.initMiniBatches(m_inputBatches.size());
-        
+
         std::cout << "Filling input MiniBatches for root nodes" << std::endl;
         for (size_t batchId = 0; batchId < m_inputBatches.size(); ++batchId) {
             const auto& batchMap = m_inputBatches[batchId];
@@ -56,6 +80,9 @@ private:
         }
     }
 
+    /**
+     * @brief Initializes the task queue with all nodes and their respective batch IDs.
+     */
     void initializeTaskQueue() {
         for (size_t nodeId = 0; nodeId < m_graph.size(); ++nodeId) {
             for (size_t batchId = 0; batchId < m_inputBatches.size(); ++batchId) {
@@ -64,6 +91,9 @@ private:
         }
     }
 
+    /**
+     * @brief Worker thread function to process tasks from the task queue.
+     */
     void workerThread() {
         std::pair<size_t, size_t> task;
         while (m_taskQueue.try_pop(task)) {
@@ -80,6 +110,12 @@ private:
         }
     }
 
+    /**
+     * @brief Executes a single node for a specific batch.
+     * 
+     * @param nodeId The ID of the node to be executed.
+     * @param batchId The ID of the batch being processed.
+     */
     void executeNode(size_t nodeId, size_t batchId) {
         GraphNode& node = m_graph.getNode(nodeId);
 
@@ -100,6 +136,12 @@ private:
         }
     }
 
+    /**
+     * @brief Updates dependencies for downstream nodes after a node's execution.
+     * 
+     * @param nodeId The ID of the node that has just been executed.
+     * @param batchId The ID of the batch that was processed.
+     */
     void updateDependencies(size_t nodeId, size_t batchId) {
         // Update the dependencies for downstream nodes
         for (size_t downstreamNodeId = 0; downstreamNodeId < m_graph.size(); ++downstreamNodeId) {

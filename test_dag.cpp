@@ -1,44 +1,44 @@
 #include <iostream>
-#include "executor.h"
+#include "dag.h"
 
 int main() {
-    // 创建图
+    // create graph
     Graph graph;
 
-    // 创建节点
+    // create node
     GraphNode multiplyNode(ComputeType::CPU, [](auto& inputs, auto& outputs) {
         double inputVal = std::get<double>(inputs["multiplyin"]);
         outputs["multiplyout"] = inputVal * 2;
     });
-    multiplyNode.addInput("multiplyin", DataContainer()); // 设置 multiplyNode 的输入字段
-    multiplyNode.addOutput("multiplyout", DataContainer()); // 设置 multiplyNode 的输出字段
+    multiplyNode.addInput("multiplyin", DataContainer()); // set multiplyNode's input field
+    multiplyNode.addOutput("multiplyout", DataContainer()); // set multiplyNode's output field
 
     GraphNode divideNode(ComputeType::CPU, [](auto& inputs, auto& outputs) {
         double inputVal = std::get<double>(inputs["multiplyout"]);
         outputs["divideout"] = inputVal / 10;
     });
-    divideNode.addInput("multiplyout", DataContainer()); // 设置 divideNode 的输入字段
-    divideNode.addOutput("divideout", DataContainer()); // 设置 divideNode 的输出字段
+    divideNode.addInput("multiplyout", DataContainer()); // set divideNode's input field
+    divideNode.addOutput("divideout", DataContainer()); // set divideNode's output field
 
-    // 添加节点到图
+    // add node to graph
     size_t multiplyNodeId = graph.addNode(multiplyNode);
     size_t divideNodeId = graph.addNode(divideNode);
 
-    // 添加边
+    // try to add edge
     std::cout << "Adding edge multiplyNode -> divideNode: " << (graph.addEdge(multiplyNodeId, divideNodeId) ? "Success" : "Failed") << "\n";
 
-    // 准备输入 MiniBatch
+    // input MiniBatch
     std::vector<std::unordered_map<std::string, MiniBatch>> inputBatches = {
         {{"multiplyin", MiniBatch({1.0, 2.0, 3.0})}}
     };
-    
+
     std::cout << "executor start" << std::endl;
-    // 创建执行器并运行
+    // create executor
     Executor executor(graph, inputBatches);
     executor.run();
 
     std::cout << "reach end" << std::endl;
-    // 打印结果
+    // output MiniBatch
     for (size_t batchId = 0; batchId < inputBatches.size(); ++batchId) {
         std::cout << "Batch " << batchId << " output: ";
         auto output = graph.getMiniBatch(divideNodeId, batchId, "divideout");

@@ -1,53 +1,109 @@
+// Copyright (C) 2024 Haochen Jiang
+//
+// Authors: Haochen Jiang
+// Date: 2024/1/2
+
+/**
+ * @file mini_batch.h
+ *
+ * @brief Implements the MiniBatch class.
+ *
+ * The MiniBatch class encapsulates a collection of data items, each of which can be of various types. It provides
+ * functionality to manipulate these data items, and each MiniBatch has an associated name for identification.
+ */
+
+#pragma once
+
 #include <vector>
 #include <string>
 #include "data_container.h"
 
+/**
+ * @brief The MiniBatch class stores a collection of data items and a name.
+ *
+ * MiniBatch is primarily used to store and manipulate a sequence of data items. Each data item can be of any type 
+ * defined in the DataContainer variant. The class provides methods to add, retrieve, and manage these items.
+ */
 class MiniBatch {
 public:
-    // 默认构造函数
+    /**
+     * @brief Default constructor.
+     */
     MiniBatch() = default;
 
-    // 使用一系列数据初始化的构造函数
+    /**
+     * @brief Constructs a MiniBatch with a list of data items.
+     *
+     * @param data A vector of data items to initialize the MiniBatch.
+     */
     MiniBatch(const std::vector<DataContainer>& data)
         : batchData(data) {}
 
-    // 使用名称和数据初始化的构造函数
+    /**
+     * @brief Constructs a MiniBatch with a name and a list of data items.
+     *
+     * @param name The name of the MiniBatch.
+     * @param data A vector of data items to initialize the MiniBatch.
+     */
     MiniBatch(const std::string& name, const std::vector<DataContainer>& data)
         : batchName(name), batchData(data) {}
 
-    // 添加一个数据项
+    /**
+     * @brief Adds a data item to the MiniBatch.
+     *
+     * @param data The data item to add.
+     */
     void addData(const DataContainer& data) {
         batchData.push_back(data);
     }
 
-    // 获取特定索引的数据项
+    /**
+     * @brief Retrieves a data item at a specified index.
+     *
+     * @param index The index of the data item.
+     * @return The data item at the specified index.
+     */
     const DataContainer& getData(size_t index) const {
         return batchData.at(index);
     }
 
-    // 获取MiniBatch的大小
+    /**
+     * @brief Returns the number of data items in the MiniBatch.
+     *
+     * @return The size of the MiniBatch.
+     */
     size_t size() const {
         return batchData.size();
     }
 
-    // 清空MiniBatch
+    /**
+     * @brief Clears all data items from the MiniBatch.
+     */
     void clear() {
         batchData.clear();
     }
 
-    // 获取MiniBatch的名称
+    /**
+     * @brief Retrieves the name of the MiniBatch.
+     *
+     * @return The name of the MiniBatch.
+     */
     const std::string& getName() const {
         return batchName;
     }
 
-    // 设置MiniBatch的名称
+    /**
+     * @brief Sets the name of the MiniBatch.
+     *
+     * @param name The new name for the MiniBatch.
+     */
     void setName(const std::string& name) {
         batchName = name;
     }
 
-    // 其他可能需要的方法，比如迭代器支持等
+    // Additional methods can be added as needed.
 
 private:
-    std::vector<DataContainer> batchData; // 存储一系列的数据容器
-    std::string batchName; // MiniBatch的名称
+    std::vector<DataContainer> batchData; ///< Stores the data items of the MiniBatch.
+    std::string batchName; ///< The name of the MiniBatch.
 };
