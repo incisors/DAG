@@ -152,9 +152,12 @@ private:
                 inputMiniBatches.push_back(m_graph.getMiniBatch(nodeId, batchId, inputField.first));
             }
 
+            std::string outputName = node.getOutputs().begin()->first;
+            std::vector<MiniBatch> outputMiniBatches;
             // cuda kernel
-            runCudaProcess(node, inputMiniBatches);
+            runCudaProcess(node, inputMiniBatches, outputMiniBatches, outputName);
 
+            node.setOutputBatch(outputMiniBatches);
             // update output minibatch
             for (const auto& outputField : node.getOutputs()) {
                 auto& outputMiniBatch = node.getOutputBatch(outputField.first);

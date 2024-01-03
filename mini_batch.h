@@ -67,6 +67,14 @@ public:
         return batchData.at(index);
     }
 
+    std::vector<DataContainer>& getData() {
+        return batchData;
+    }
+    
+    const std::vector<DataContainer>& getData() const {
+        return batchData;
+    }
+
     /**
      * @brief Returns the number of data items in the MiniBatch.
      *
