@@ -19,6 +19,7 @@
 #include <map>
 #include <string>
 #include "data_container.h"
+#include "mini_batch.h"
 
 enum class ComputeType { CPU, GPU };
 
@@ -153,10 +154,51 @@ public:
         return outputs;
     }
 
+    const std::vector<MiniBatch>& getInputBatch() const {
+        return inputBatch;
+    }
+
+    const std::vector<MiniBatch>& getOutputBatch() const {
+        return outputBatch;
+    }
+
+    const MiniBatch& getOutputBatch(const std::string& name) const {
+        for (const auto& output : outputBatch) {
+            if (output.getName() == name) {
+                return output;
+            }
+        }
+    }
+
+    void setInputBatch(const std::vector<MiniBatch>& batch) {
+        inputBatch = batch;
+    }
+
+    void setOutputBatch(const std::vector<MiniBatch>& batch) {
+        outputBatch = batch;
+    }
+
+    ComputeType getComputeType() const {
+        return computeType;
+    }
+
+    void cleanUp() {
+        for (auto& input : inputs) {
+            input.second = DataContainer();
+        }
+        for (auto& output : outputs) {
+            output.second = DataContainer();
+        }
+        inputBatch.clear();
+        outputBatch.clear();
+    }
+
 private:
     ComputeType computeType; ///< The compute type of the node (CPU or GPU).
     std::map<std::string, DataContainer> inputs; ///< Map of input field names to data.
     std::map<std::string, DataContainer> outputs; ///< Map of output field names to data.
+    std::vector<MiniBatch> inputBatch; ///< The input MiniBatch. (currently only for GPU processing)
+    std::vector<MiniBatch> outputBatch; ///< The output MiniBatch. (currently only for GPU processing)
     std::function<void(std::map<std::string, DataContainer>&, std::map<std::string, DataContainer>&)> cpuProcess; ///< The CPU processing function.
     std::function<void(std::map<std::string, DataContainer>&, std::map<std::string, DataContainer>&)> gpuProcess; ///< The GPU processing function.
 };

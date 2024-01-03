@@ -22,6 +22,10 @@
 #include "graph.h"
 #include "queue.h"
 
+#ifdef USE_CUDA
+    #include "cuda_kernel.cu"
+#endif
+
 class Executor {
 public:
     /**
@@ -118,22 +122,47 @@ private:
      */
     void executeNode(size_t nodeId, size_t batchId) {
         GraphNode& node = m_graph.getNode(nodeId);
+        // cpu process
+        if (node.getComputeType() == ComputeType::CPU) {
+            // Iterate over each input field and corresponding MiniBatch
+            size_t batchSize = m_graph.getMiniBatch(nodeId, batchId, node.getInputs().begin()->first).size();
+            std::cout << "batchSize: " << batchSize << std::endl;
+            
+            // TODO: not solved yet for multiple inputs field, should cause problem
+            for (const auto& inputField : node.getInputs()) {
+                auto& inputMiniBatch = m_graph.getMiniBatch(nodeId, batchId, inputField.first);
 
-        // Iterate over each input field and corresponding MiniBatch
-        for (const auto& inputField : node.getInputs()) {
-            auto& inputMiniBatch = m_graph.getMiniBatch(nodeId, batchId, inputField.first);
-
-            for (size_t i = 0; i < inputMiniBatch.size(); ++i) {
-                node.setInput(inputField.first, inputMiniBatch.getData(i));
-                node.execute();
-
-                // Process each output MiniBatch
-                for (const auto& outputField : node.getOutputs()) {
-                    auto& outputMiniBatch = m_graph.getMiniBatch(nodeId, batchId, outputField.first);
-                    outputMiniBatch.addData(node.getOutput(outputField.first));
+                for (size_t i = 0; i < inputMiniBatch.size(); ++i) {
+                    node.setInput(inputField.first, inputMiniBatch.getData(i));
+                    node.execute();
+                    // Process each output MiniBatch
+                    for (const auto& outputField : node.getOutputs()) {
+                        auto& outputMiniBatch = m_graph.getMiniBatch(nodeId, batchId, outputField.first);
+                        outputMiniBatch.addData(node.getOutput(outputField.first));
+                    }
+                    node.cleanUp();
                 }
             }
+
+        } else {
+            // gpu process
+            #ifdef USE_CUDA
+            std::vector<MiniBatch> inputMiniBatches;
+            for (const auto& inputField : node.getInputs()) {
+                inputMiniBatches.push_back(m_graph.getMiniBatch(nodeId, batchId, inputField.first));
+            }
+
+            // cuda kernel
+            runCudaProcess(node, inputMiniBatches);
+
+            // update output minibatch
+            for (const auto& outputField : node.getOutputs()) {
+                auto& outputMiniBatch = node.getOutputBatch(outputField.first);
+                m_graph.getMiniBatch(nodeId, batchId, outputField.first) = outputMiniBatch;
+            }
+            #endif
         }
+
     }
 
     /**
